@@ -23,8 +23,8 @@ SOFTWARE.
 */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "raylib.h"
 
@@ -62,7 +62,7 @@ typedef struct Token {
   int size;
   Color color;
   bool delim;
-} Token; // ok
+} Token;
 
 void colorize(Token *token) {
   if ((token->str)[0] == '"' || (token->str)[0] == '\'') {
@@ -112,7 +112,6 @@ void tokenize(char *str, Token *tokens, int *ntokens) {
     char newtype = chartype(str[i]);
     if (type != newtype && type != 's' && type != 'c' && !skip_next) {
       if (*ntokens > 0) {
-        printf("%d, %d\n", *ntokens, i);
         char *copied_token =
             malloc(sizeof(char) * (tokens[(*ntokens) - 1].size + 1));
         strncpy(copied_token, tokens[(*ntokens) - 1].str,
@@ -169,7 +168,6 @@ int main(int argc, char **argv) {
   int ntokens[MAX_LINES] = {0};
 
   for (int i = 0; i < lines; i++) {
-    printf("Tokenizing: %d\n", i);
     tokenize(code[i], tokens[i], &ntokens[i]);
   }
 
@@ -186,7 +184,8 @@ int main(int argc, char **argv) {
   int codx = 50;
   int cody = 10;
 
-  Font myfont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf", fontSize, NULL, 0);
+  Font myfont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf",
+                           fontSize, NULL, 0);
   SetTextureFilter(myfont.texture, TEXTURE_FILTER_POINT);
   while (!WindowShouldClose()) {
     BeginDrawing();

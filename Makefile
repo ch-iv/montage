@@ -13,5 +13,8 @@ raylib:
 montage: raylib montage.c
 	$(CC) $(CFLAGS) -I$(RAYLIB_SRC) -o $@ montage.c -L$(RAYLIB_SRC) $(LDLIBS)
 
+format:
+	clang-format --style=LLVM -i -- montage.c
+
 clean:
 	rm -f montage
