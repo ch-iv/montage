@@ -75,6 +75,11 @@ char *keywords_list[] = {
 size_t types_count = sizeof(types_list) / sizeof(types_list[0]);
 size_t keywords_count = sizeof(keywords_list) / sizeof(keywords_list[0]);
 
+bool containsPointRect(Vector2 point, Rectangle rect) {
+  return (point.x >= rect.x) && (point.x <= (rect.x + rect.width)) &&
+         (point.y >= rect.y) && (point.y <= (rect.y + rect.height));
+}
+
 int alignRight(Rectangle child, Rectangle parent) {
   return parent.width - child.width;
 }
@@ -170,9 +175,10 @@ void tokenize(char *str, Token *tokens, int *ntokens) {
   tokens[(*ntokens) - 1].str = copied_token;
 }
 
-void getCodeTexture(RenderTexture2D *target, int textureWidth,
-                    int textureHeight, Font font, int fontSize, int charSpacing,
-                    Code *code, bool drawLineNumbers) {
+void getCodeTexture(RenderTexture2D *target, int textureWidth, Font font,
+                    int fontSize, int charSpacing, int lineHeight, Code *code,
+                    bool drawLineNumbers) {
+  int textureHeight = code->nlines * lineHeight;
   *target = LoadRenderTexture(textureWidth, textureHeight);
   BeginTextureMode(*target);
   int digitWidth = MeasureTextEx(font, "0", fontSize, charSpacing).x;
@@ -247,6 +253,50 @@ double getSmoothScroll(double startTime, double startPos, double currTime,
   return startPos + ratio * distToMove;
 }
 
+typedef struct Container {
+  double codeY;
+  double scrollStartTime;
+  double scrollStartPos;
+  double scrollDirection;
+  bool scrolling;
+  RenderTexture2D target;
+  Rectangle rect;
+  Rectangle view;
+} Container;
+
+void drawCodeInContainer(Container *c) {
+  if (GetMouseWheelMove() && containsPointRect(GetMousePosition(), c->rect)) {
+    c->scrollStartTime = GetTime();
+    c->scrollStartPos = c->codeY;
+    c->scrollDirection = -GetMouseWheelMove();
+    c->scrolling = true;
+  }
+
+  if (c->scrolling) {
+    double newY = getSmoothScroll(c->scrollStartTime, c->scrollStartPos,
+                                  GetTime(), 0.15, 200 * c->scrollDirection);
+    if (newY < 0)
+      newY = 0;
+    if (newY + c->rect.height > c->target.texture.height)
+      newY = c->target.texture.height - c->rect.height;
+    if (newY == c->codeY) {
+      c->scrolling = false;
+    } else {
+      c->codeY = newY;
+    }
+  }
+
+  BeginBlendMode(3);
+
+  SetTextureWrap(c->target.texture, TEXTURE_WRAP_CLAMP);
+  DrawTextureRec(
+      c->target.texture,
+      (Rectangle){0, c->target.texture.height - c->codeY - c->rect.height,
+                  c->rect.width, -c->rect.height},
+      (Vector2){c->rect.x, c->rect.y}, RAYWHITE);
+  EndBlendMode();
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     printf("Usage ./%s <filename.txt>\n", argv[0]);
@@ -254,6 +304,7 @@ int main(int argc, char **argv) {
   }
 
   Code code = parseCode(argv[1]);
+  Code code2 = parseCode(argv[1]);
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Montage");
   SetWindowState(FLAG_WINDOW_RESIZABLE);
@@ -265,49 +316,24 @@ int main(int argc, char **argv) {
 
   Font myfont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf",
                            fontSize, NULL, 0);
-
-  int textureWidth = GetScreenWidth();
-  int textureHeight = code.nlines * lineHeight;
-  RenderTexture2D target;
-  getCodeTexture(&target, textureWidth, textureHeight, myfont, fontSize,
-                 charSpacing, &code, true);
-  double codeY = 0;
-  double scrollStartTime = 0;
-  double scrollStartPos = codeY;
-  double scrollDirection = 0;
-  bool scrolling = false;
+  Container c1 = {0};
+  Container c2 = {0};
   while (!WindowShouldClose()) {
-    if (textureWidth != GetScreenWidth()) {
-      textureWidth = GetScreenWidth();
-      getCodeTexture(&target, textureWidth, textureHeight, myfont, fontSize,
-                     charSpacing, &code, true);
-    }
+    if (c1.target.texture.width != GetScreenWidth() / 2 ||
+        c1.rect.height != GetScreenHeight() / 2) {
+      c1.rect = (Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2,
+                            GetScreenWidth() / 2, GetScreenHeight() / 2};
+      c2.rect = (Rectangle){0, 0, GetScreenWidth() / 2, GetScreenHeight() / 2};
+      getCodeTexture(&c1.target, GetScreenWidth() / 2, myfont, fontSize,
+                     charSpacing, lineHeight, &code, true);
 
-    if (GetMouseWheelMove()) {
-      scrollStartTime = GetTime();
-      scrollStartPos = codeY;
-      scrollDirection = GetMouseWheelMove();
-      scrolling = true;
-    }
-
-    if (scrolling) {
-      double newY = getSmoothScroll(scrollStartTime, scrollStartPos, GetTime(),
-                                    0.15, 200 * scrollDirection);
-      if (newY == codeY) {
-        scrolling = false;
-      } else {
-        codeY = newY;
-      }
+      getCodeTexture(&c2.target, GetScreenWidth() / 2, myfont, fontSize,
+                     charSpacing, lineHeight, &code2, true);
     }
     BeginDrawing();
     ClearBackground(BACKGROUND_COLOR);
-    BeginBlendMode(3);
-    DrawTextureRec(
-        target.texture,
-        (Rectangle){0, 0, target.texture.width, -target.texture.height},
-        (Vector2){0, codeY}, RAYWHITE);
-    EndBlendMode();
-    DrawFPS(100, 100);
+    drawCodeInContainer(&c1);
+    drawCodeInContainer(&c2);
     EndDrawing();
   }
 
@@ -322,6 +348,9 @@ int main(int argc, char **argv) {
   free(code.lines);
   free(code.tokens);
   free(code.ntokens);
+  free(code2.lines);
+  free(code2.tokens);
+  free(code2.ntokens);
 
   return 0;
 }
