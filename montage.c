@@ -304,7 +304,6 @@ int main(int argc, char **argv) {
   }
 
   Code code = parseCode(argv[1]);
-  Code code2 = parseCode(argv[1]);
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Montage");
   SetWindowState(FLAG_WINDOW_RESIZABLE);
@@ -317,23 +316,18 @@ int main(int argc, char **argv) {
   Font myfont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf",
                            fontSize, NULL, 0);
   Container c1 = {0};
-  Container c2 = {0};
-  while (!WindowShouldClose()) {
-    if (c1.target.texture.width != GetScreenWidth() / 2 ||
-        c1.rect.height != GetScreenHeight() / 2) {
-      c1.rect = (Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2,
-                            GetScreenWidth() / 2, GetScreenHeight() / 2};
-      c2.rect = (Rectangle){0, 0, GetScreenWidth() / 2, GetScreenHeight() / 2};
-      getCodeTexture(&c1.target, GetScreenWidth() / 2, myfont, fontSize,
-                     charSpacing, lineHeight, &code, true);
 
-      getCodeTexture(&c2.target, GetScreenWidth() / 2, myfont, fontSize,
-                     charSpacing, lineHeight, &code2, true);
+  while (!WindowShouldClose()) {
+    if (c1.target.texture.width != GetScreenWidth() ||
+        c1.rect.height != GetScreenHeight()) {
+
+      c1.rect = (Rectangle){0, 0, GetScreenWidth(), GetScreenHeight()};
+      getCodeTexture(&c1.target, GetScreenWidth(), myfont, fontSize,
+                     charSpacing, lineHeight, &code, true);
     }
     BeginDrawing();
     ClearBackground(BACKGROUND_COLOR);
     drawCodeInContainer(&c1);
-    drawCodeInContainer(&c2);
     EndDrawing();
   }
 
@@ -348,9 +342,6 @@ int main(int argc, char **argv) {
   free(code.lines);
   free(code.tokens);
   free(code.ntokens);
-  free(code2.lines);
-  free(code2.tokens);
-  free(code2.ntokens);
 
   return 0;
 }
