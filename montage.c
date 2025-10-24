@@ -261,7 +261,6 @@ typedef struct Container {
   bool scrolling;
   RenderTexture2D target;
   Rectangle rect;
-  Rectangle view;
 } Container;
 
 void drawCodeInContainer(Container *c) {
@@ -297,12 +296,46 @@ void drawCodeInContainer(Container *c) {
   EndBlendMode();
 }
 
+typedef struct SlideContent {
+  char *title;
+  char **text;
+  int nlines;
+} SlideContent;
+
+void drawSlideContent(SlideContent *sc) {
+  int textSize = 40;
+  int titleSize = textSize * 1.5;
+  int x = textSize;
+  int y = textSize;
+  Font titleFont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf",
+                           titleSize, NULL, 0);
+  Font textFont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf",
+                           textSize, NULL, 0);
+  //BeginBlendMode(3);
+  DrawTextEx(titleFont, sc->title, (Vector2){x, y}, titleSize, 0, RAYWHITE);
+  y += titleSize; 
+  x += textSize;
+  for (int i = 0; i < sc->nlines; i++) {
+    DrawTextEx(textFont, (sc->text)[i], (Vector2){x, y}, textSize, 0, RAYWHITE);
+    y += textSize;
+  }
+  //EndBlendMode();
+}
+
 int main(int argc, char **argv) {
   if (argc != 2) {
     printf("Usage ./%s <filename.txt>\n", argv[0]);
     return 1;
   }
 
+  SlideContent sc = { 0 };
+  sc.title = "Hello, World!";
+  char **text = malloc(sizeof(char *) * 2);
+  text[0] = "- Presentation software for programmers";
+  text[1] = "- No GUI";
+  sc.text = text;
+  sc.nlines = 2;
+  printf("%d\n", sc.nlines);
   Code code = parseCode(argv[1]);
 
   InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Montage");
@@ -314,7 +347,7 @@ int main(int argc, char **argv) {
   int charSpacing = 0;
 
   Font myfont = LoadFontEx("./resources/fonts/iosevka/Iosevka-Medium.ttf",
-                           fontSize, NULL, 0);
+                           fontSize * 3, NULL, 0);
   Container c1 = {0};
 
   while (!WindowShouldClose()) {
@@ -328,6 +361,11 @@ int main(int argc, char **argv) {
     BeginDrawing();
     ClearBackground(BACKGROUND_COLOR);
     drawCodeInContainer(&c1);
+
+    // Feature flag to guard slide drawing.
+    bool drawSlides = false;
+    if (drawSlides) drawSlideContent(&sc);
+    
     EndDrawing();
   }
 
