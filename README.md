@@ -1,5 +1,5 @@
 # Montage
-This is a small program that can present C code with syntax highlighting.
+Montage is a small program that can present C code with syntax highlighting.
 
 ### Usage
 To display a file:
@@ -13,4 +13,4 @@ make
 ```
 
 ### What is the purpose of this program?
-This program is a part of a code-oriented presentation suite I am working on. Presenting code is a difficult task -- this makes it easier.
+This program is a part of a code-oriented presentation suite I am working on. Presenting code is a difficult task -- Montage makes it easier.
